@@ -47,14 +47,25 @@ def create_plot(mu, sigma, x_bar, n):
     fig.update_layout(
         title={
             'text': f"Statistical Significance Analysis<br><span style='font-size:14px; color:gray;'>" +
-                    f"μ={mu} | σ={sigma} | n={n} | x̄={x_bar} | SE={std_error:.2f}</span>",
-            'y':0.95, 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'
+                    f"μ={mu} | σ={sigma} | n={int(n)} | x̄={x_bar} | SE={std_error:.2f}</span>",
+            'y': 0.95, 
+            'x': 0.5, 
+            'xanchor': 'center', 
+            'yanchor': 'top'
         },
-        xaxis_title="Value",
-        yaxis_title="Probability Density",
+        xaxis=dict(
+            title="Measured Value (x̄)",
+            showgrid=True,
+            zeroline=False
+        ),
+        yaxis=dict(
+            title="Probability Density",
+            showgrid=True,
+            zeroline=False
+        ),
         template="plotly_white",
         showlegend=False,
-        margin=dict(t=100)
+        margin=dict(t=100, l=50, r=50, b=50) # Added margins for label space
     )
 
     return pio.to_html(fig, full_html=False), z_score, p_value
