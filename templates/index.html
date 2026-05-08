@@ -1,51 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Stats Visualizer</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatsInsight | z-Test Visualizer</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stats-header { background: #2c3e50; color: white; padding: 2rem 0; margin-bottom: 2rem; border-radius: 0 0 25px 25px; }
+        .formula-box { background: #e9ecef; border-left: 5px solid #2c3e50; padding: 15px; font-family: 'Courier New', Courier, monospace; }
+        .result-sig { color: #d63031; font-weight: bold; }
+        .result-insig { color: #636e72; font-weight: bold; }
+    </style>
 </head>
-<body class="container mt-5">
-    <h2>Z-Score & P-Value Visualizer</h2>
-    <form method="POST" class="row g-3">
-        <div class="col-md-3">
-            <label>Mean (μ)</label>
-            <input type="number" step="any" name="mu" class="form-control" value="100" required>
-        </div>
-        <div class="col-md-3">
-            <label>Std Dev (σ)</label>
-            <input type="number" step="any" name="sigma" class="form-control" value="15" required>
-        </div>
-        <div class="col-md-3">
-            <label>Observed Value (x)</label>
-            <input type="number" step="any" name="x_val" class="form-control" value="130" required>
-        </div>
-        <div class="col-md-3 align-self-end">
-            <button type="submit" class="btn btn-primary w-100">Visualize</button>
-        </div>
-    </form>
+<body>
 
-    <div class="mt-5">
-        {% if graph %}
-            <div>{{ graph | safe }}</div>
-            <div class="alert alert-info">
-                <strong>Analysis:</strong> The Z-score is <b>{{ z|round(2) }}</b>. 
-                The P-value is <b>{{ p|round(4) }}</b>.
+<div class="stats-header text-center">
+    <h1>Statistical Significance Visualizer</h1>
+    <p class="lead">Analyzing Sample Means with the z-Test</p>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Input Section -->
+        <div class="col-lg-4">
+            <div class="card p-4 mb-4">
+                <h4 class="mb-3">Parameters</h4>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Population Mean (&mu;)</label>
+                        <!-- Using .get() prevents KeyError on first load -->
+                        <input type="number" step="any" name="mu" class="form-control" value="{{ request.form.get('mu', 100) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Population Std Dev (&sigma;)</label>
+                        <input type="number" step="any" name="sigma" class="form-control" value="{{ request.form.get('sigma', 15) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sample Size (n)</label>
+                        <input type="number" step="1" name="n" class="form-control" value="{{ request.form.get('n', 30) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observed Sample Mean (x̄)</label>
+                        <input type="number" step="any" name="x_bar" class="form-control" value="{{ request.form.get('x_bar', 105) }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2">Visualize Distribution</button>
+                </form>
             </div>
-        {% endif %}
-    </div>
-    <div class="card mt-3">
-        <div class="card-body">
-            <h5 class="card-title">Verdict</h5>
-            <p class="card-text">
-            The point <strong>{{ x_val }}</strong> is <strong>{{ z|round(2) }}</strong> standard deviations from the mean.
-                <br>
-            {% if p <= 0.05 %}
-                <span class="text-danger"><strong>SIGNIFICANT:</strong> This falls in the extreme 5% of the population.</span>
+        </div>
+
+        <!-- Visualization Section -->
+        <div class="col-lg-8">
+            {% if graph %}
+                <div class="card p-2 mb-4">
+                    {{ graph | safe }}
+                </div>
+
+                <div class="card p-4 mb-4">
+                    <h4>Analysis Summary</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Z-Score:</strong> {{ z|round(4) }}</p>
+                            <p><strong>P-Value:</strong> {{ p|round(4) }}</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            {% if p <= 0.05 %}
+                                <h3 class="result-sig">REJECT NULL</h3>
+                                <p class="text-muted">Result is Statistically Significant (p &le; 0.05)</p>
+                            {% else %}
+                                <h3 class="result-insig">FAIL TO REJECT</h3>
+                                <p class="text-muted">Result is Not Significant (p > 0.05)</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-4 mb-5">
+                    <h4>Calculation Breakdown</h4>
+                    <div class="formula-box mt-2">
+                        SE = &sigma; / &radic;n <br>
+                        Z = (x̄ - &mu;) / SE
+                    </div>
+                    <p class="mt-3">
+                        $$z = \frac{ {{request.form.get('x_bar')}} - {{request.form.get('mu')}} }{ {{request.form.get('sigma')}} / \sqrt{ {{request.form.get('n')}} } }$$
+                    </p>
+                </div>
             {% else %}
-                <span class="text-muted"><strong>NOT SIGNIFICANT:</strong> This falls within the expected 95% range.</span>
+                <div class="text-center mt-5 p-5 border rounded bg-white shadow-sm">
+                    <h3 class="text-muted">Ready for Analysis</h3>
+                    <p>Adjust the parameters on the left and click visualize to see the sampling distribution and p-value area.</p>
+                </div>
             {% endif %}
-            </p>
         </div>
     </div>
+</div>
+
+<footer class="text-center py-4 text-muted">
+    <small>Academic Tool for Statistical Analysis</small>
+</footer>
+
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </body>
 </html>
