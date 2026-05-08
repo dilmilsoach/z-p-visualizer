@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StatsInsight | z-Test Visualizer</title>
+    <title>z-Test and p-value Visualizer</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -68,10 +68,10 @@
                         </div>
                         <div class="col-md-6 text-end">
                             {% if p <= 0.05 %}
-                                <h3 class="result-sig">REJECT NULL</h3>
+                                <h3 class="result-sig">REJECT NULL HYPOTHESIS. The observed data is an outlier.</h3>
                                 <p class="text-muted">Result is Statistically Significant (p &le; 0.05)</p>
                             {% else %}
-                                <h3 class="result-insig">FAIL TO REJECT</h3>
+                                <h3 class="result-insig">FAIL TO REJECT THE NULL HYPOTHESIS. The observed data lies within the bounds.</h3>
                                 <p class="text-muted">Result is Not Significant (p > 0.05)</p>
                             {% endif %}
                         </div>
