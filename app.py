@@ -68,6 +68,3 @@ def index():
         graph, z, p = create_plot(mu, sigma, x_val)
     
     return render_template('index.html', graph=graph, z=z, p=p)
-
-if __name__ == '__main__':
-    app.run(debug=True)
