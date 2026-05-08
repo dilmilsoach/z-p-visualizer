@@ -3,57 +3,58 @@ import numpy as np
 import scipy.stats as stats
 import plotly.graph_objects as go
 import plotly.io as pio
+import os
 
 app = Flask(__name__)
 
-def create_plot(mu, sigma, x_val):
-    # 1. Math Setup
-    z_score = (x_val - mu) / sigma
+def create_plot(mu, sigma, x_bar, n):
+    # 1. Math Setup - Using Standard Error for Sample Mean
+    std_error = sigma / np.sqrt(n)
+    z_score = (x_bar - mu) / std_error
     p_value = stats.norm.sf(abs(z_score)) * 2
     
-    x = np.linspace(mu - 4*sigma, mu + 4*sigma, 500)
-    y = stats.norm.pdf(x, mu, sigma)
+    # Generate distribution data
+    x = np.linspace(mu - 4*std_error, mu + 4*std_error, 500)
+    y = stats.norm.pdf(x, mu, std_error)
     
     # 2. Create Figure
     fig = go.Figure()
 
     # Main Curve
-    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Population', line=dict(color='#2c3e50')))
+    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Sampling Distribution', line=dict(color='#2c3e50')))
 
     # 3. Add the "Observed Point"
-    # Logic: Red if rare (<0.05), Blue if common
     point_color = 'red' if p_value <= 0.05 else '#2980b9'
     
     fig.add_trace(go.Scatter(
-        x=[x_val], 
-        y=[stats.norm.pdf(x_val, mu, sigma)],
+        x=[x_bar], 
+        y=[stats.norm.pdf(x_bar, mu, std_error)],
         mode='markers+text',
-        name='Observed Point',
-        text=[f"x={x_val}"],
+        name='Sample Mean',
+        text=[f"x̄={x_bar}"],
         textposition="top center",
         marker=dict(size=12, color=point_color, symbol='diamond')
     ))
 
     # 4. Add the 95% Confidence Boundaries (Vertical Dashed Lines)
-    upper_bound = mu + 1.96 * sigma
-    lower_bound = mu - 1.96 * sigma
+    upper_bound = mu + 1.96 * std_error
+    lower_bound = mu - 1.96 * std_error
     
-    for bound, label in [(upper_bound, "Upper 95%"), (lower_bound, "Lower 95%")]:
+    for bound in [upper_bound, lower_bound]:
         fig.add_vline(x=bound, line_dash="dash", line_color="green", opacity=0.5)
 
-    # 5. The "No-Confusion" Header
-    # We use update_layout to add a subtitle with the exact parameters
+    # 5. Header
     fig.update_layout(
         title={
             'text': f"Statistical Significance Analysis<br><span style='font-size:14px; color:gray;'>" +
-                    f"Inputs: Mean (μ)={mu} | StdDev (σ)={sigma} | Observed (x)={x_val}</span>",
+                    f"μ={mu} | σ={sigma} | n={n} | x̄={x_bar} | SE={std_error:.2f}</span>",
             'y':0.95, 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'
         },
         xaxis_title="Value",
         yaxis_title="Probability Density",
         template="plotly_white",
         showlegend=False,
-        margin=dict(t=100) # Give extra space for the header
+        margin=dict(t=100)
     )
 
     return pio.to_html(fig, full_html=False), z_score, p_value
@@ -62,15 +63,16 @@ def create_plot(mu, sigma, x_val):
 def index():
     graph, z, p = None, None, None
     if request.method == 'POST':
-        mu = float(request.form['mu'])
-        sigma = float(request.form['sigma'])
-        x_val = float(request.form['x_val'])
-        graph, z, p = create_plot(mu, sigma, x_val)
+        # Using .get() prevents 400 Bad Request errors if a key is missing
+        mu = float(request.form.get('mu', 100))
+        sigma = float(request.form.get('sigma', 15))
+        n = float(request.form.get('n', 1))
+        x_bar = float(request.form.get('x_bar', 105)) # Changed from x_val to x_bar to match HTML
+        
+        graph, z, p = create_plot(mu, sigma, x_bar, n)
     
     return render_template('index.html', graph=graph, z=z, p=p)
-import os
 
 if __name__ == '__main__':
-    # Get the port from the environment variable (default to 5000 for local)
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
