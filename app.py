@@ -68,3 +68,9 @@ def index():
         graph, z, p = create_plot(mu, sigma, x_val)
     
     return render_template('index.html', graph=graph, z=z, p=p)
+import os
+
+if __name__ == '__main__':
+    # Get the port from the environment variable (default to 5000 for local)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
